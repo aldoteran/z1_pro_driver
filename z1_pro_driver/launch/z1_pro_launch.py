@@ -24,6 +24,14 @@ def generate_launch_description():
         "tf_frame_prefix", default_value="", description="Prefix for TF frames.")
     frame_prefix = LaunchConfiguration("tf_frame_prefix")
 
+    # IP:PORT of the camera
+    ip_arg = DeclareLaunchArgument(
+        "camera_ip", default_value="192.168.1.108", description="IP address of the camera.")
+    port_arg = DeclareLaunchArgument(
+        "camera_port", default_value="2332", description="TCP port of the camera.")
+    port = LaunchConfiguration("camera_port")
+    ip = LaunchConfiguration("camera_ip")
+
     # Whether to use the vehicles altitude or constrain it to the 2d plane.
     altitude_arg = DeclareLaunchArgument(
         "use_vehicle_altitude", default_value='False', description="2D or 3D odom.")
@@ -39,6 +47,8 @@ def generate_launch_description():
         namespace_arg,
         altitude_arg,
         frame_prefix_arg,
+        ip_arg,
+        port_arg,
         # Launch robot state publisher and gimbal joint publisher,
         Node(
             package="robot_state_publisher",
@@ -70,6 +80,8 @@ def generate_launch_description():
             parameters=[{
                 "gimbal_ctrl_topic": gimbal_ctrl_topic,
                 "gimbal_feedback_topic": gimbal_feedback_topic,
+                "camera_ip": ip,
+                "camera_port": port
             }],
         ),
         Node(

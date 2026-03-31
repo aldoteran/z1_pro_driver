@@ -10,13 +10,9 @@ import binascii
 import time
 import struct
 
-# FIXME: This might need to be changed for parameters.
-GCU_IP = "192.168.2.210"
-TCP_PORT = 2332
+
 RECONNECT_DELAY = 5  # seconds
-
 SOME_MIN_LENGTH = 10
-
 sock = None
 
 
@@ -24,6 +20,11 @@ class GimbalReadAndPublish(Node):
 
     def __init__(self):
         super().__init__('read_and_publish')
+
+        self.declare_parameter("camera_ip", "192.168.1.108")
+        self.declare_parameter("camera_port", 2332)
+        self.camera_ip = str(self.get_parameter("camera_ip").value)
+        self.camera_port = int(self.get_parameter("camera_port").value)
 
         self.declare_parameter("gimbal_ctrl_topic", "gimbal_ctrl")
         self.declare_parameter("gimbal_feedback_topic", "gimbal_feedback")
@@ -126,12 +127,13 @@ def build_packet(
     return full_packet
 
 
-def establish_connection_with_handshake():
+def establish_connection_with_handshake(GCU_IP, TCP_PORT):
     global sock
     while True:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5)
+            print(f"Attempting to connect to GCU at {GCU_IP}:{TCP_PORT}...")
             sock.connect((GCU_IP, TCP_PORT))
             print("TCP socket connected, sending test command...")
 
@@ -209,7 +211,7 @@ def main(args=None):
 
     minimal_publisher = GimbalReadAndPublish()
 
-    establish_connection_with_handshake()
+    establish_connection_with_handshake(GCU_IP=minimal_publisher.camera_ip, TCP_PORT=minimal_publisher.camera_port)
 
     rclpy.spin(minimal_publisher)
 
