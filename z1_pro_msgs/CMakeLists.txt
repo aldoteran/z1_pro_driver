@@ -15,6 +15,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CamCmd.msg"
   "msg/Gcudata.msg"
+  "msg/Topics.msg"
   DEPENDENCIES geographic_msgs geometry_msgs std_msgs
 )
 

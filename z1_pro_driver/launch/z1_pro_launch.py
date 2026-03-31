@@ -5,20 +5,24 @@ from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 import os
 
+from smarc_msgs.msg import Topics as SmarcTopics
+from z1_pro_msgs.msg import Topics as Z1ProTopics
+
 
 def generate_launch_description():
-    # ------- Set up your topic names here. -----------
-    cmd_topic = "gimbal_cam_cmd"  # Input high-level CamCmd topic.
-    gimbal_ctrl_topic = "gimbal_ctrl"  # Output low-level ctrl topic.
-    gimbal_feedback_topic = "gimbal_feedback"  # Feedback from gimbal/camera topic.
-    odom_topic = "smarc/odom"  # Odometry topic (orientation).
-    geopoint_topic = "smarc/latlon"  # Global position topic.
-    # -------------------------------------------------------
+    cmd_topic = Z1ProTopics.CMD_TOPIC
+    gimbal_ctrl_topic = Z1ProTopics.GIMBAL_CTRL_TOPIC
+    gimbal_feedback_topic = Z1ProTopics.GIMBAL_FEEDBACK_TOPIC
+    odom_topic = SmarcTopics.ODOM_TOPIC
+    geopoint_topic = SmarcTopics.POS_LATLON_TOPIC
 
     # Namespace as command line argument.
     namespace_arg = DeclareLaunchArgument(
         "namespace", default_value="", description="Namespace for the nodes.")
-    ns = [LaunchConfiguration("namespace"), "/gimbal"]
+    ns = LaunchConfiguration("namespace")
+    frame_prefix_arg = DeclareLaunchArgument(
+        "tf_frame_prefix", default_value="", description="Prefix for TF frames.")
+    frame_prefix = LaunchConfiguration("tf_frame_prefix")
 
     # Whether to use the vehicles altitude or constrain it to the 2d plane.
     altitude_arg = DeclareLaunchArgument(
@@ -32,7 +36,9 @@ def generate_launch_description():
         robot_description = f.read()
 
     return LaunchDescription([
-        namespace_arg, altitude_arg,
+        namespace_arg,
+        altitude_arg,
+        frame_prefix_arg,
         # Launch robot state publisher and gimbal joint publisher,
         Node(
             package="robot_state_publisher",
@@ -41,7 +47,7 @@ def generate_launch_description():
             output="screen",
             parameters=[{
                 "robot_description": robot_description,
-                "frame_prefix": ns
+                "frame_prefix": frame_prefix
             }],
         ),
         Node(

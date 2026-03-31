@@ -2,7 +2,7 @@
 <robot name="z1_pro_camera">
 
   <!-- Base that is attached to the robot. -->
-  <link name="z1_base">
+  <link name="z1_base_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.5"/>
@@ -23,7 +23,7 @@
   </link>
 
   <joint name="yaw_joint" type="revolute">
-    <parent link="z1_base"/>
+    <parent link="z1_base_link"/>
     <child link="z1_yaw_link"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>  <!-- yaw about Z -->
