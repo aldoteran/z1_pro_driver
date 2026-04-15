@@ -43,57 +43,63 @@ def generate_launch_description():
     with open(urdf_path, "r") as f:
         robot_description = f.read()
 
+    # Launch robot state publisher and gimbal joint publisher
+    robot_state_publisher_node = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        namespace=ns,
+        output="screen",
+        parameters=[{
+            "robot_description": robot_description,
+            "frame_prefix": frame_prefix
+        }]
+    )
+
+    gimbal_joint_publisher_node = Node(
+        package="z1_pro_driver",
+        executable="gimbal_joint_publisher",
+        namespace=ns,
+        output="screen",
+        parameters=[{
+            "gimbal_feedback_topic": gimbal_feedback_topic,
+            "use_vehicle_altitude": use_altitude
+        }]
+    )
+
+    # Low-level driver and high-level interface.
+    read_and_publish_node = Node(
+        package="z1_pro_driver",
+        executable="read_and_publish.py",
+        namespace=ns,
+        output="screen",
+        parameters=[{
+            "gimbal_ctrl_topic": gimbal_ctrl_topic,
+            "gimbal_feedback_topic": gimbal_feedback_topic,
+            "camera_ip": ip,
+            "camera_port": port
+        }]
+    )
+    gimbal_interface_node = Node(
+        package="z1_pro_driver",
+        executable="gimbal_interface_node",
+        namespace=ns,
+        output="screen",
+        parameters=[{
+            "cmd_topic": cmd_topic,
+            "gimbal_ctrl_topic": gimbal_ctrl_topic,
+            "odom_topic": odom_topic,
+            "geopoint_topic": geopoint_topic
+        }]
+    )
+
     return LaunchDescription([
         namespace_arg,
         altitude_arg,
         frame_prefix_arg,
         ip_arg,
         port_arg,
-        # Launch robot state publisher and gimbal joint publisher,
-        Node(
-            package="robot_state_publisher",
-            executable="robot_state_publisher",
-            namespace=ns,
-            output="screen",
-            parameters=[{
-                "robot_description": robot_description,
-                "frame_prefix": frame_prefix
-            }],
-        ),
-        Node(
-            package="z1_pro_driver",
-            executable="gimbal_joint_publisher",
-            namespace=ns,
-            output="screen",
-            parameters=[{
-                "gimbal_feedback_topic": gimbal_feedback_topic,
-                "use_vehicle_altitude": use_altitude
-            }],
-        ),
-
-        # Launch low-level driver and high-level interface.
-        Node(
-            package="z1_pro_driver",
-            executable="read_and_publish.py",
-            namespace=ns,
-            output="screen",
-            parameters=[{
-                "gimbal_ctrl_topic": gimbal_ctrl_topic,
-                "gimbal_feedback_topic": gimbal_feedback_topic,
-                "camera_ip": ip,
-                "camera_port": port
-            }],
-        ),
-        Node(
-            package="z1_pro_driver",
-            executable="gimbal_interface_node",
-            namespace=ns,
-            output="screen",
-            parameters=[{
-                "cmd_topic": cmd_topic,
-                "gimbal_ctrl_topic": gimbal_ctrl_topic,
-                "odom_topic": odom_topic,
-                "geopoint_topic": geopoint_topic
-            }],
-        ),
+        robot_state_publisher_node, 
+        gimbal_joint_publisher_node,
+        read_and_publish_node,
+        gimbal_interface_node 
     ])

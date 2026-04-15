@@ -61,6 +61,7 @@ install(TARGETS
 install(PROGRAMS 
   scripts/read_and_publish.py 
   scripts/order_test_euler.py 
+  scripts/gimbal_action.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
