@@ -49,6 +49,7 @@ def generate_launch_description():
     robot_state_publisher_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
+        name="gimbal_camera_state_publisher",
         namespace=robot_name,
         output="screen",
         parameters=[{
@@ -60,6 +61,7 @@ def generate_launch_description():
     gimbal_joint_publisher_node = Node(
         package="z1_pro_driver",
         executable="gimbal_joint_publisher",
+        name="gimbal_camera_joint_publisher",
         namespace=robot_name,
         output="screen",
         parameters=[{
@@ -72,6 +74,7 @@ def generate_launch_description():
     read_and_publish_node = Node(
         package="z1_pro_driver",
         executable="read_and_publish.py",
+        name="gimbal_camera_driver",
         namespace=robot_name,
         output="screen",
         parameters=[{

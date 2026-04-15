@@ -31,6 +31,7 @@ def generate_launch_description():
     gimbal_interface_node = Node(
         package="z1_pro_driver",
         executable="gimbal_interface_node",
+        name="gimbal_camera_interface_node",
         namespace=robot_name,
         output="screen",
         parameters=[{
@@ -46,6 +47,7 @@ def generate_launch_description():
     gimbal_action_server_node = Node(
         package="z1_pro_driver",
         executable="gimbal_action.py",
+        name="gimbal_camera_action_server",
         namespace=robot_name,
         output="screen",
         parameters=[{
