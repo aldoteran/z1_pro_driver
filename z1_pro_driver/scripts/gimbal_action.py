@@ -40,6 +40,7 @@ class GimbalActionServer:
         float64 yaw   # [deg]
 
         # Point of interest (POI).
+        bool track_poi 
         geographic_msgs/GeoPoint poi
                 float64 latitude
                 float64 longitude
@@ -57,6 +58,7 @@ class GimbalActionServer:
             cmd_msg.roll = float(goal_request["roll"])
             cmd_msg.pitch = float(goal_request["pitch"])
             cmd_msg.yaw = float(goal_request["yaw"])
+            cmd_msg.track_poi = bool(goal_request["track_poi"])
             cmd_msg.poi = GeoPoint()
             cmd_msg.poi.latitude = float(goal_request["poi"]["latitude"])
             cmd_msg.poi.longitude = float(goal_request["poi"]["longitude"])

@@ -148,7 +148,6 @@ class GimbalInterface : public rclcpp::Node {
                                    northp, x_poi_, y_poi_);
     z_poi_ = msg->poi.altitude;
 
-    tracking_poi_ = true;
   }
 
 
@@ -176,7 +175,6 @@ class GimbalInterface : public rclcpp::Node {
                         ? pitch
                         : MAX_PITCH * (pitch / std::abs(pitch));
 
-    tracking_poi_ = true;
   }
 
 
@@ -245,8 +243,6 @@ class GimbalInterface : public rclcpp::Node {
                       ? yaw 
                       : MAX_YAW * (yaw / std::abs(yaw));
 
-    // Yaw cmd overrides POI.
-    tracking_poi_ = false;
   }
 
   // -----------------------------------------------------------------------
@@ -260,25 +256,19 @@ class GimbalInterface : public rclcpp::Node {
     // Check for changes.
     std::vector<int> changes;
     _check_delta_msg(msg, changes);
+
+    tracking_poi_ = msg->track_poi;
     
     // Check changes in a heirarchical way.
     // TODO: Is it too ineficient to update angles individually?
-    if (changes[POI]){
+    if (tracking_poi_ && changes[POI]){
       // POI takes priority over anything else.
       _update_poi(msg);
-    } else if (changes[YAW]){
-      // If something wants to take over yaw, we'll let them as long as there's
-      // no new POI.
-      _update_yaw(msg);
-      //_update_pitch(msg);
+    } else {
+      if (changes[YAW]){_update_yaw(msg);}
+      if (changes[PITCH]){_update_pitch(msg);}
+      if (changes[ROLL]){_update_roll(msg);}
     }
-
-    if (!tracking_poi_){
-      _update_pitch(msg);
-    }
-
-    // Always track user's roll.
-    _update_roll(msg);
 
     // TODO: Always update channel and resolution.
     //channel = msg.channel;
