@@ -1,3 +1,2 @@
-string CMD_TOPIC = "gimbal_cam_cmd"
-string GIMBAL_CTRL_TOPIC = "gimbal_ctrl"
-string GIMBAL_FEEDBACK_TOPIC = "gimbal_feedback"
+string GIMBAL_CMD_TOPIC = "gimbal_cmd"
+string GIMBAL_FB_TOPIC = "gimbal_fb"

@@ -1,82 +1,136 @@
 #!/usr/bin/env python3
 
+from enum import Enum
+
 import rclpy
 from rclpy.node import Node, Optional
 from rclpy.executors import Future, MultiThreadedExecutor
 
 from geographic_msgs.msg import GeoPoint
+from geometry_msgs.msg import Vector3
 
 from smarc_action_base.gentler_action_server import GentlerActionServer
-from z1_pro_msgs.msg import CamCmd, Topics
+from z1_pro_msgs.msg import Topics as Z1Topics
+from z1_pro_msgs.msg import GimbalFeedback
+
+
+
 
 class GimbalActionServer:
     def __init__(self, node: Node):
         self._node = node
 
-        node.declare_parameter("cmd_topic", Topics.CMD_TOPIC)
-        self._cmd_topic : str = node.get_parameter("cmd_topic").get_parameter_value().string_value
 
-        self._publisher = node.create_publisher(CamCmd, self._cmd_topic, 10)
+        node.declare_parameter("rpy_pub_hz", 10.0)
+        self._rpy_pub_hz : float = node.get_parameter("rpy_pub_hz").get_parameter_value().double_value
 
-        self._as = GentlerActionServer(
+        self.desired_rpy : Vector3 = Vector3()
+        self._rpy_publisher = node.create_publisher(Vector3, Z1Topics.GIMBAL_CMD_TOPIC, 10)
+
+        self.feedback : GimbalFeedback = GimbalFeedback()
+        self.tracking_mode : str = GimbalFeedback.GIMBAL_MODE_OFF
+
+
+
+        self._rpy_as = GentlerActionServer(
             self._node,
-            "z1_pro_cmd",
-            self._on_goal_received,
+            "gimbal_set_rpy",
+            self._on_goal_received_rpy,
             lambda: True,
             lambda: None,
             lambda: True,
             lambda: "No feedback",
-            loop_frequency = 10.0
+            loop_frequency = 1.0
         )
 
-        node.get_logger().info(f"GimbalActionServer initialized, publishing to {self._cmd_topic}")
+        # TODO: When implemented, these will set the desired_rpy and tracking_mode, and all will be well.
+        self._geopoint_as = GentlerActionServer(
+            self._node,
+            "gimbal_set_geopoint",
+            lambda goal_request: self._node.get_logger().warn("Geopoint action not implemented yet") and False,
+            lambda: True,
+            lambda: None,
+            lambda: True,
+            lambda: "No feedback",
+            loop_frequency = 1.0
+        )
 
-    def _on_goal_received(self, goal_request: dict) -> bool:
+        self._track_img_poi_as = GentlerActionServer(
+            self._node,
+            "gimbal_track_img_poi",
+            lambda goal_request: self._node.get_logger().warn("Image POI tracking action not implemented yet") and False,
+            lambda: True,
+            lambda: None,
+            lambda: True,
+            lambda: "No feedback",
+            loop_frequency = 1.0
+        )
+
+        self._track_odom_poi_as = GentlerActionServer(
+            self._node,
+            "gimbal_track_odom_poi",
+            lambda goal_request: self._node.get_logger().warn("Odom POI tracking action not implemented yet") and False,
+            lambda: True,
+            lambda: None,
+            lambda: True,
+            lambda: "No feedback",
+            loop_frequency = 1.0
+        )
+
+        self._stop_as = GentlerActionServer(
+            self._node,
+            "gimbal_stop",
+            self._on_goal_received_stop,
+            lambda: True,
+            lambda: None,
+            lambda: True,
+            lambda: "No feedback",
+            loop_frequency = 1.0
+        )
+
+        timer = node.create_timer(1.0 / self._rpy_pub_hz, self.publish_rpy)
+
+        self.log(f"GimbalActionServer initialized.")
+
+
+
+    def publish_rpy(self):
+        self.feedback.gimbal_mode = self.tracking_mode
+        if self.tracking_mode == GimbalFeedback.GIMBAL_MODE_OFF:
+            self.log("Gimbal is off, not publishing RPY commands.")
+            return
+        self._rpy_publisher.publish(self.desired_rpy)
+        self.log(f"Published desired RPY: {self.desired_rpy}")
+
+
+    def log(self, msg:str):
+        self._node.get_logger().info(msg)
+
+
+    def _on_goal_received_stop(self, goal_request: dict) -> bool:
+        self.log(f"Received stop goal")
+        self.tracking_mode = GimbalFeedback.GIMBAL_MODE_OFF
+        return True
+
+
+    def _on_goal_received_rpy(self, goal_request: dict) -> bool:
         """
-        uint8 frame # [0,1]
-
         float64 roll  # [deg]
         float64 pitch # [deg]
         float64 yaw   # [deg]
-
-        # Point of interest (POI).
-        bool track_poi 
-        geographic_msgs/GeoPoint poi
-                float64 latitude
-                float64 longitude
-                float64 altitude
-
-        uint8 channel    # [0,1]
-        uint8 resolution # TODO
         """
+        self.log(f"Received RPY goal: {goal_request}")
         try:
-            cmd_msg = CamCmd()
-            cmd_msg.frame = int(goal_request["frame"])
-            if cmd_msg.frame not in [0, 1]:
-                self._node.get_logger().error(f"Invalid frame value: {cmd_msg.frame}. Must be 0 or 1.")
-                return False
-            cmd_msg.roll = float(goal_request["roll"])
-            cmd_msg.pitch = float(goal_request["pitch"])
-            cmd_msg.yaw = float(goal_request["yaw"])
-            cmd_msg.track_poi = bool(goal_request["track_poi"])
-            cmd_msg.poi = GeoPoint()
-            cmd_msg.poi.latitude = float(goal_request["poi"]["latitude"])
-            cmd_msg.poi.longitude = float(goal_request["poi"]["longitude"])
-            cmd_msg.poi.altitude = float(goal_request["poi"]["altitude"])
-            cmd_msg.channel = int(goal_request["channel"])
-            if cmd_msg.channel not in [0, 1]:
-                self._node.get_logger().error(f"Invalid channel value: {cmd_msg.channel}. Must be 0 or 1.")
-                return False
-            # cmd_msg.resolution = int(goal_request["resolution"])
-
-            self._publisher.publish(cmd_msg)
-            self._node.get_logger().info(f"Received goal, published CamCmd: {cmd_msg}")
+            self.desired_rpy.x = float(goal_request["roll"])
+            self.desired_rpy.y = float(goal_request["pitch"])
+            self.desired_rpy.z = float(goal_request["yaw"])
+            self.tracking_mode = GimbalFeedback.GIMBAL_MODE_RPY
             return True
         except KeyError as e:
-            self._node.get_logger().error(f"Missing key in goal request: {e}")
+            self.log("Missing key in goal request")
             return False
         except ValueError as e:
-            self._node.get_logger().error(f"Invalid value in goal request: {e}")
+            self.log("Invalid value in goal request")
             return False
 
 def main():
