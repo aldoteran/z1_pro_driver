@@ -27,19 +27,13 @@ class GimbalReadAndPublish(Node):
         self.declare_parameter("camera_port", 2332)
         self.camera_port = self.get_parameter("camera_port").get_parameter_value().integer_value
 
-        self.declare_parameter("gimbal_ctrl_topic", Topics.GIMBAL_CTRL_TOPIC)
-        ctrl_topic = self.get_parameter("gimbal_ctrl_topic").get_parameter_value().string_value
-
-        self.declare_parameter("gimbal_feedback_topic", Topics.GIMBAL_FEEDBACK_TOPIC)
-        feedback_topic = self.get_parameter("gimbal_feedback_topic").get_parameter_value().string_value
-
         # Create publisher
-        self.publisher_ = self.create_publisher(Gcudata, feedback_topic, 10)
+        self.publisher_ = self.create_publisher(Gcudata, Topics.GIMBAL_GCU_FB_TOPIC, 10)
         timer_period = 1 / 50  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         # Create subscriber
-        self.subscription = self.create_subscription(Vector3, ctrl_topic,
+        self.subscription = self.create_subscription(Vector3, Topics.GIMBAL_CMD_TOPIC,
                                                      self.listener_callback,
                                                      10)
         self.subscription  # prevent unused variable warning

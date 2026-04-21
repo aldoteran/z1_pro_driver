@@ -28,6 +28,7 @@ class GimbalActionServer:
         self._rpy_publisher = node.create_publisher(Vector3, Z1Topics.GIMBAL_CMD_TOPIC, 10)
 
         self.feedback : GimbalFeedback = GimbalFeedback()
+        self._feedback_publisher = node.create_publisher(GimbalFeedback, Z1Topics.GIMBAL_FB_TOPIC, 10)
         self.tracking_mode : str = GimbalFeedback.GIMBAL_MODE_OFF
 
 
@@ -88,17 +89,20 @@ class GimbalActionServer:
             loop_frequency = 1.0
         )
 
-        timer = node.create_timer(1.0 / self._rpy_pub_hz, self.publish_rpy)
+        timer = node.create_timer(1.0 / self._rpy_pub_hz, self.publish_rpy_and_fb)
 
         self.log(f"GimbalActionServer initialized.")
 
 
 
-    def publish_rpy(self):
+    def publish_rpy_and_fb(self):
         self.feedback.gimbal_mode = self.tracking_mode
+        self._feedback_publisher.publish(self.feedback)
+
         if self.tracking_mode == GimbalFeedback.GIMBAL_MODE_OFF:
             self.log("Gimbal is off, not publishing RPY commands.")
             return
+        
         self._rpy_publisher.publish(self.desired_rpy)
         self.log(f"Published desired RPY: {self.desired_rpy}")
 
