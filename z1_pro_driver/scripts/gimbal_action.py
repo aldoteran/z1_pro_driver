@@ -17,7 +17,7 @@ from smarc_action_base.gentler_action_server import GentlerActionServer
 from z1_pro_msgs.msg import Topics as Z1Topics
 from z1_pro_msgs.msg import GimbalFeedback, Gcudata
 from tf2_geometry_msgs.tf2_geometry_msgs import do_transform_point
-from tf_transformations import euler_from_quaternion
+from transforms3d.euler import quat2euler
 
 from smarc_utilities.georef_utils import convert_latlon_to_utm
 
@@ -173,8 +173,8 @@ class GimbalActionServer:
             # (2) carrier heading
             # get pitch roll yaw from quaternion
             orientation_q = self.carrier_odom.pose.pose.orientation
-            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-            (roll, pitch, carrier_yaw) = euler_from_quaternion(orientation_list)
+            orientation_list = [orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z]
+            (roll, pitch, carrier_yaw) = quat2euler(orientation_list, axes='sxyz')
 
             # (3) calcualte pitch
             carrier_altitude = self.carrier_odom.pose.pose.position.z
@@ -193,7 +193,7 @@ class GimbalActionServer:
 
             desired_rpy : Vector3 = Vector3()
             desired_rpy.x = 0.0 #roll
-            desired_rpy.y = target_pitch_deg
+            desired_rpy.y = -target_pitch_deg
             desired_rpy.z = -target_yaw_deg
 
         elif self.tracking_mode == GimbalFeedback.GIMBAL_MODE_ODOM_POI:
@@ -205,8 +205,8 @@ class GimbalActionServer:
                 #(1) Calculate angle we need to turn the camera to face the POI)
 
                 orientation_q = self.image_poi.quaternion
-                orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-                (roll, pitch, yaw) = euler_from_quaternion(orientation_list)
+                orientation_list = [orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z]
+                (roll, pitch, yaw) = quat2euler(orientation_list, axes='sxyz')
 
                 pitch = math.degrees(-pitch)
                 yaw = math.degrees(yaw)
@@ -242,7 +242,7 @@ class GimbalActionServer:
             desired_rpy = self.desired_rpy
 
         self._rpy_publisher.publish(desired_rpy)
-        self.log(f"Published RPY: {desired_rpy}")
+        #self.log(f"Published RPY: {desired_rpy}")
 
 
     def log(self, msg:str):
@@ -273,6 +273,9 @@ class GimbalActionServer:
             return False
         except ValueError as e:
             self.log("Invalid value in goal request")
+            return False
+        except Exception as e:
+            self.log("Error in euler request " + str(e))
             return False
 
     def _on_goal_received_geopoint(self, goal_request: dict) -> bool:
@@ -316,6 +319,9 @@ class GimbalActionServer:
             return False
         except ValueError as e:
             self.log("Invalid value in goal request")
+            return False
+        except Exception as e:
+            self.log("Error in gepoint request " + str(e))
             return False
     
     def _on_goal_received_img_poi(self, goal_request: dict) -> bool:
